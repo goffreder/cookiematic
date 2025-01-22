@@ -5,12 +5,13 @@ Cookiematic = class {
         this.interval = 100;
         this.overrideMaxBuildings = false;
         this.maxBuildings = [
-        600, -1, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
-        500,
+            600, -1, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+            500,
         ];
         this.cpsBuffThreshold = 40;
         this.isAutoClicking = false;
         this.autoPopGoldenCookies = true;
+        this.ignoreGoldenCookieEfficiency = false;
         this.autoClickWhenBuffActive = true;
         this.autoToggleGoldenSwitch = true;
         this.autoBuyAllUpgrades = true;
@@ -49,8 +50,6 @@ Cookiematic = class {
             this.toggleGoldenSwitch("off");
 
         if (!this.isGoldenSwitchOn()) {
-            // check if I have enough cookies in bank for max golden cookie
-            // Will give the most cookies if cookies banked is 100 minutes (1 hour 40 mins) of CpS
             this.autoBuyAllUpgrades && this.buyAllUpgrades();
             this.autoPledge && this.buyElderPledge();
 
@@ -89,8 +88,10 @@ Cookiematic = class {
 
     buyAllUpgrades = () => {
         for (let i = Game.UpgradesInStore.length - 1; i >= 0; i--) {
-            if (this.haveEnoughCookiesForMaxGoldenCookie(Game.UpgradesInStore[i].basePrice))
+            if (this.haveEnoughCookiesForMaxGoldenCookie(Game.UpgradesInStore[i].basePrice) && Game.UpgradesInStore[i].name !== "Golden switch [on]" && Game.UpgradesInStore[i].name !== "Golden switch [off]") {
                 Game.UpgradesInStore[i].buy();
+                console.log("Bought " + Game.UpgradesInStore[i].name);
+            }
         }
     };
 
@@ -212,17 +213,20 @@ Cookiematic = class {
     };
 
     haveEnoughCookiesForMaxGoldenCookie = (price) => {
+        if (this.ignoreGoldenCookieEfficiency) {
+            return true;
+        }
+
         return Game.cookies >= (Game.cookiesPs * 60 * 100) + price;
     };
 
     manageKrumblor = () => {
         if (Game.Has("A crumbly egg")) {
             if (Game.dragonLevel !== 23) {
-                const cost = Game.dragonLevels[Game.dragonLevel].cost();
-                if (cost && this.haveEnoughCookiesForMaxGoldenCookie(cost)) {
-                    Game.UpgradeDragon();
-
-                    console.log("One more for Krumblor!");
+                if (Game.dragonLevels[Game.dragonLevel].cost()) {
+                Game.UpgradeDragon();
+        
+                console.log("One more for Krumblor!");
                 }
             }
         }
