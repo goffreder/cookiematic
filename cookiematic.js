@@ -10,6 +10,7 @@ Cookiematic = class {
         ];
         this.cpsBuffThreshold = 40;
         this.isAutoClicking = false;
+        this.autoFtHoF = true;
         this.autoPopGoldenCookies = true;
         this.ignoreGoldenCookieEfficiency = false;
         this.autoClickWhenBuffActive = true;
@@ -19,7 +20,9 @@ Cookiematic = class {
         this.autoHarvestLumps = true;
         this.autoBuyBuildings = true;
         this.autoKrumblor = false;
+
         this.__mainCycleInterval = null;
+        this.__autoClickInterval = null;
     }
 
     __iteration = () => {
@@ -27,6 +30,7 @@ Cookiematic = class {
             return;
         }
 
+        this.autoFtHoF && this.attemptCastFtHoF();
         this.autoPopGoldenCookies && this.popGoldenCookies();
 
         this.autoClickWhenBuffActive &&
@@ -84,6 +88,26 @@ Cookiematic = class {
         this.__mainCycleInterval = null;
     
         this.status = "inactive";
+    };
+
+    attemptCastFtHoF = () => {
+        const wt = Game.Objects["Wizard tower"].minigame;
+
+        if (wt) {
+        const FtHoF = wt.spells["hand of fate"];
+
+        if (
+            wt &&
+            wt.magic >= FtHoF.costMin &&
+            (wt.magic === wt.magicM ||
+            this.isCpsBuffedEnough(this.cpsBuffThreshold) ||
+            this.isClickBuffed())
+        ) {
+            if (wt.castSpell(FtHoF)) {
+                console.log("Cast Force the Hand of Fate!");
+            }
+        }
+        }
     };
 
     buyAllUpgrades = () => {
