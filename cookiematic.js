@@ -15,6 +15,7 @@ Cookiematic = class {
         this.autoToggleGoldenSwitch = true;
         this.autoBuyAllUpgrades = true;
         this.autoPledge = false;
+        this.autoHarvestLumps = true;
         this.autoBuyBuildings = true;
         this.autoKrumblor = false;
         this.__mainCycleInterval = null;
@@ -35,6 +36,8 @@ Cookiematic = class {
             !this.isClickBuffed() &&
             !this.isCpsBuffedEnough(this.cpsBuffThreshold) &&
             this.stopAutoClicking();
+
+        this.autoHarvestLumps && this.isSugarLumpRipe() && this.harvestSugarLump();
 
         this.autoToggleGoldenSwitch &&
             !this.isGoldenSwitchOn() &&
@@ -166,6 +169,15 @@ Cookiematic = class {
         return false;
     };
 
+    isSugarLumpRipe = () =>
+        Game.canLumps() && Date.now() >= Game.lumpT + Game.lumpRipeAge;
+
+    harvestSugarLump = () => {
+        Game.clickLump();
+
+        console.log("A spoonful of sugar helps the medicine go down!");
+    };
+
     isCpsNotBuffed = () => {
         return !Object.keys(Game.buffs).length;
     };
@@ -175,11 +187,9 @@ Cookiematic = class {
     };
 
     toggleGoldenSwitch = (status) => {
-        if (
-            Game.Upgrades[
-            "Golden switch [" + (status === "on" ? "off" : "on") + "]"
-            ].buy()
-        ) {
+        const upgrade = Game.Upgrades["Golden switch [" + (status === "on" ? "off" : "on") + "]"];
+
+        if (upgrade.buy()) {
             console.log("Toggled Golden Switch " + status);
         }
     };
@@ -207,14 +217,14 @@ Cookiematic = class {
 
     manageKrumblor = () => {
         if (Game.Has("A crumbly egg")) {
-        if (Game.dragonLevel !== 23) {
-            const cost = Game.dragonLevels[Game.dragonLevel].cost();
-            if (cost && this.haveEnoughCookiesForMaxGoldenCookie(cost)) {
-                Game.UpgradeDragon();
+            if (Game.dragonLevel !== 23) {
+                const cost = Game.dragonLevels[Game.dragonLevel].cost();
+                if (cost && this.haveEnoughCookiesForMaxGoldenCookie(cost)) {
+                    Game.UpgradeDragon();
 
-                console.log("One more for Krumblor!");
+                    console.log("One more for Krumblor!");
+                }
             }
         }
-        }
-  };
+    };
 };
