@@ -45,7 +45,7 @@ Cookiematic = class {
             this.isCpsNotBuffed() &&
             this.toggleGoldenSwitch("off");
 
-        if (!this.isGoldenSwitchOn() && this.haveEnoughCookiesForMaxGoldenCookie()) {
+        if (!this.isGoldenSwitchOn()) {
             // check if I have enough cookies in bank for max golden cookie
             // Will give the most cookies if cookies banked is 100 minutes (1 hour 40 mins) of CpS
             this.autoBuyAllUpgrades && this.buyAllUpgrades();
@@ -85,12 +85,9 @@ Cookiematic = class {
     };
 
     buyAllUpgrades = () => {
-        if (Game.Has("Inspired checklist")) {
-            Game.storeBuyAll();
-        } else {
-            for (let i = Game.UpgradesInStore.length - 1; i >= 0; i--) {
-            Game.UpgradesInStore[i].buy();
-            }
+        for (let i = Game.UpgradesInStore.length - 1; i >= 0; i--) {
+            if (this.haveEnoughCookiesForMaxGoldenCookie(Game.UpgradesInStore[i].basePrice))
+                Game.UpgradesInStore[i].buy();
         }
     };
 
@@ -99,10 +96,11 @@ Cookiematic = class {
     
         if (
             Game.UpgradesInStore.indexOf(pledgeUpgrade) != -1 &&
-            pledgeUpgrade.bought !== 1
+            pledgeUpgrade.bought !== 1 &&
+            this.haveEnoughCookiesForMaxGoldenCookie(pledgeUpgrade.basePrice)
         ) {
             pledgeUpgrade.buy();
-    
+
             console.log("Pledged to the elders once again!");
         }
     };
@@ -190,20 +188,33 @@ Cookiematic = class {
         for (let i = Game.ObjectsN - 1; i >= 0; i--) {
             const b = Game.ObjectsById[i];
     
-            const canAfford = b.getSumPrice(Game.buyBulk) <= Game.cookies;
-            const haveLessThanMax =
-            this.maxBuildings[i] === -1 || b.amount < this.maxBuildings[i];
+            const totalPrice = b.getSumPrice(Game.buyBulk);
+            const canAfford = totalPrice <= Game.cookies && this.haveEnoughCookiesForMaxGoldenCookie(totalPrice);
+            const haveLessThanMax = this.maxBuildings[i] === -1 || b.amount < this.maxBuildings[i];
             const shouldOverrideMaxNumber = this.overrideMaxBuildings;
     
             if (canAfford && (haveLessThanMax || shouldOverrideMaxNumber)) {
-            b.buy(Game.buyBulk);
-    
-            console.log("Bought " + Game.buyBulk + " " + b.name);
+                b.buy(Game.buyBulk);
+        
+                console.log("Bought " + Game.buyBulk + " " + b.name);
             }
         }
     };
 
-    haveEnoughCookiesForMaxGoldenCookie = () => {
-        return Game.cookies >= Game.cookiesPs * 60 * 100;
+    haveEnoughCookiesForMaxGoldenCookie = (price) => {
+        return Game.cookies >= (Game.cookiesPs * 60 * 100) + price;
     };
+
+    manageKrumblor = () => {
+        if (Game.Has("A crumbly egg")) {
+        if (Game.dragonLevel !== 23) {
+            const cost = Game.dragonLevels[Game.dragonLevel].cost();
+            if (cost && this.haveEnoughCookiesForMaxGoldenCookie(cost)) {
+                Game.UpgradeDragon();
+
+                console.log("One more for Krumblor!");
+            }
+        }
+        }
+  };
 };
