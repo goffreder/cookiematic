@@ -172,7 +172,7 @@ Cookiematic = class {
             var b = Game.buffs[i];
     
             if (typeof b.multCpS !== undefined) {
-            cpsBuff *= b.multCpS;
+                cpsBuff *= b.multCpS;
             }
         }
     
@@ -241,7 +241,7 @@ Cookiematic = class {
             return true;
         }
 
-        return Game.cookies >= (Game.cookiesPs * 60 * 100) + price;
+        return Game.cookies >= (Game.cookiesPsRaw * 60 * 100) + price;
     };
 
     manageKrumblor = () => {
