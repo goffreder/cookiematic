@@ -2,24 +2,27 @@ Cookiematic = class {
 
     constructor() {
         this.status = "inactive";
-        this.interval = 100;
+        this.interval = 1;
         this.overrideMaxBuildings = false;
         this.maxBuildings = [
             600, -1, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
             500,
         ];
-        this.cpsBuffThreshold = 40;
+        this.cpsBuffThreshold = 10;
+        this.FtHoFCpsBuffThreshold = 5;
         this.isAutoClicking = false;
         this.autoFtHoF = true;
         this.autoPopGoldenCookies = true;
         this.ignoreGoldenCookieEfficiency = false;
         this.autoClickWhenBuffActive = true;
-        this.autoToggleGoldenSwitch = true;
+        this.autoToggleGoldenSwitch = false;
         this.autoBuyAllUpgrades = true;
-        this.autoPledge = false;
+        this.filteredUpgrades = ["Elder Pledge", "Elder Covenant", "Golden switch [on]", "Golden switch [off]"];
+        this.autoPledge = true;
         this.autoHarvestLumps = true;
         this.autoBuyBuildings = true;
         this.autoKrumblor = false;
+        this.popWrathCookies = true;
 
         this.__mainCycleInterval = null;
         this.__autoClickInterval = null;
@@ -33,14 +36,25 @@ Cookiematic = class {
         this.autoFtHoF && this.attemptCastFtHoF();
         this.autoPopGoldenCookies && this.popGoldenCookies();
 
-        this.autoClickWhenBuffActive &&
+        if (this.autoClickWhenBuffActive &&
             !this.isAutoClicking &&
-            (this.isClickBuffed() || this.isCpsBuffedEnough(this.cpsBuffThreshold)) &&
-            this.startAutoClicking();
-        this.isAutoClicking &&
+            (this.isClickBuffed() || this.isCpsBuffedEnough(this.cpsBuffThreshold))
+        )
+            {
+                this.popWrinklers();
+                this.startAutoClicking();
+            }
+
+        if (this.isAutoClicking && this.hasGodzamok()) {
+            this.sellBuildingsForGodzamok();
+        }
+
+        if (this.isAutoClicking &&
             !this.isClickBuffed() &&
-            !this.isCpsBuffedEnough(this.cpsBuffThreshold) &&
-            this.stopAutoClicking();
+            !this.isCpsBuffedEnough(this.cpsBuffThreshold)
+        ) {
+                this.stopAutoClicking();
+            }
 
         this.autoHarvestLumps && this.isSugarLumpRipe() && this.harvestSugarLump();
 
@@ -100,7 +114,7 @@ Cookiematic = class {
             wt &&
             wt.magic >= FtHoF.costMin &&
             (wt.magic === wt.magicM ||
-            this.isCpsBuffedEnough(this.cpsBuffThreshold) ||
+            this.isCpsBuffedEnough(this.FtHoFCpsBuffThreshold) ||
             this.isClickBuffed())
         ) {
             if (wt.castSpell(FtHoF)) {
@@ -111,10 +125,13 @@ Cookiematic = class {
     };
 
     buyAllUpgrades = () => {
-        for (let i = Game.UpgradesInStore.length - 1; i >= 0; i--) {
-            if (this.haveEnoughCookiesForMaxGoldenCookie(Game.UpgradesInStore[i].basePrice) && Game.UpgradesInStore[i].name !== "Golden switch [on]" && Game.UpgradesInStore[i].name !== "Golden switch [off]") {
-                Game.UpgradesInStore[i].buy();
-                console.log("Bought " + Game.UpgradesInStore[i].name);
+        if (Game.Has("Inspired checklist") && this.ignoreGoldenCookieEfficiency) {
+            Game.storeBuyAll();
+        } else {
+            for (let i = Game.UpgradesInStore.length - 1; i >= 0; i--) {
+                if (this.haveEnoughCookiesForMaxGoldenCookie(Game.UpgradesInStore[i].basePrice) && this.filteredUpgrades.indexOf(Game.UpgradesInStore[i].name) === -1) {
+                    Game.UpgradesInStore[i].buy() && console.log("Bought " + Game.UpgradesInStore[i].name);
+                }
             }
         }
     };
@@ -146,6 +163,33 @@ Cookiematic = class {
             console.log("Popped " + count + " golden cookie(s)!");
         }
     };
+
+    popWrinklers = () => {
+        const closeWrinklers = Game.wrinklers.filter(({ close }) => close === 1);
+
+        const count = closeWrinklers.length;
+
+        if (count) {
+            closeWrinklers.forEach((w) => (w.hp = 0));
+
+            console.log("Popped " + count + " wrinkler(s)!");
+        }
+    };
+
+    hasGodzamok = () => Game.Objects.Temple.minigame.gods.ruin.slot !== -1;
+
+    sellBuildingsForGodzamok = () => {
+        for (let i = 2; i < 6; i++) {
+            const b = Game.ObjectsById[i];
+            const amount = b.amount;
+
+            if (amount > 0) {
+                b.sell(amount);
+
+                console.log("Sold " + amount + " " + b.name);
+            }
+        }
+    }
 
     startAutoClicking = () => {
         this.__autoClickInterval = setInterval(Game.ClickCookie, 100);
